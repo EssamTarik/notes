@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+
+
+<html>
+
+	<head>
+		<link href="style.css" type="text/css" rel="stylesheet">
+		<script type="text/javascript" src="react.js"></script>
+		<script type="text/javascript" src="react-dom.js"></script>
+		<script type="text/javascript" src="browser.min.js"></script>
+        <script src="react-draggable"></script>
+
+	</head>
+
+	<body>
+		<div id="react-container"></div>
+		<script type="text/babel">
+
+			var Note = React.createClass({
+				
+				getInitialState(){
+					return {editing: false}
+				},
+
+				edit(){
+					this.setState({editing: true})
+				},
+
+				componentWillMount(){
+					this.style={
+						right: this.randomBetween(0, window.innerWidth-150, 'px'),
+						top: this.randomBetween(0, window.innerHeight-150, 'px')
+					}
+				},
+				randomBetween(x, y, s){
+					return (x + Math.ceil(Math.random() * (y-x))) + s
+				},
+				save(){
+					this.props.onChange(this.refs.newText.value, this.props.id)
+					this.setState({editing: false})
+				},
+				componentDidUpdate(){
+					if(this.state.editing){
+						this.refs.newText.focus();
+						this.refs.newText.select();
+					}
+				},
+				renderForm(){
+					return (
+						<ReactDraggable>
+
+					<div style={this.style} className="note">
+						<textarea ref="newText" defaultValue={this.props.children}></textarea>
+						<button onClick={this.save}>save</button>
+					</div>
+						</ReactDraggable>
+
+					)
+				},
+
+				renderDisplay(){
+					return (
+						<ReactDraggable>
+						<div style={this.style} className="note">
+
+						<p>{this.props.children}</p>
+
+						<span>
+							<button onClick={this.edit}>Edit</button>
+							<button onClick={this.remove}>X</button>
+						</span>
+
+					</div></ReactDraggable>
+					)
+				},
+
+				remove(id){
+					this.props.onRemove(this.props.id)
+				},
+
+				render(){
+					if(this.state.editing)
+						return this.renderForm();
+					else
+						return this.renderDisplay();
+				}
+			});
+
+
+			var Board = React.createClass({
+				propTypes: {
+					count: function(props, propName){
+						if(typeof props[propName] !== "number")
+							return new Error("the count must be a number");
+					}
+				},
+				getInitialState(){
+					return {
+						notes : [
+						]
+					}
+				},
+				nextId(){
+					this.uniqueId = this.uniqueId || 0
+					return this.uniqueId++
+				},
+				add(text){
+					var notes = [
+						...this.state.notes,
+						{
+							id: this.nextId(),
+							note: text
+						}
+					]
+					this.setState({notes})
+				},
+				shouldComponentUpdate(nextProps, nextState){
+					return this.props.children !== nextProps.children || this.state !== nextState
+				},
+				update(newText, id){
+					var notes = this.state.notes.map(
+						note => (note.id !== id) ? note : {
+							...note,
+							note : newText
+						}
+					)
+					this.setState({notes})
+				},
+				remove(id){
+					var notes = this.state.notes.filter(note => note.id !== id)
+					this.setState({notes})
+				},
+				eachNote(note){
+					return (
+						<Note key={note.id} id={note.id} onChange={this.update} onRemove={this.remove}>{note.note}</Note>
+					)
+
+				},
+				render(){
+					return (
+							<div className = 'board'>
+	                           {this.state.notes.map(this.eachNote)}
+                           <button onClick={() => this.add(prompt('enter a note'))}>+</button>
+							</div>
+						)
+				}
+			})
+			ReactDOM.render(
+				<Board count={10}/>, document.getElementById('react-container')
+			);
+		</script>
+	</body>
+</html>
